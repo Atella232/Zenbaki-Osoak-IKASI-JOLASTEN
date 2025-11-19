@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="eu">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zenbaki Osoak</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Babel Standalone for in-browser JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+      body {
+        font-family: 'Outfit', sans-serif;
+        background-color: #f8fafc;
+      }
+      .glass-panel {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+      }
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f5f9; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1; 
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8; 
+      }
+    </style>
+    
+    <!-- Import Map for dependencies -->
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.263.1",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+
+    <!-- Main Application Script -->
+    <script type="text/babel" data-type="module">
+      import React, { useState, useEffect } from 'react';
+      import { createRoot } from 'react-dom/client';
+      import { 
+        ArrowRight, ArrowLeft, BookOpen, Calculator, Home, Layout, Star, Menu, X, 
+        RefreshCw, CheckCircle, AlertCircle, HelpCircle, Check, Lightbulb, Snowflake, 
+        Sun, ThumbsUp, ThumbsDown 
+      } from 'lucide-react';
+
+      // --- TYPES & CONSTANTS ---
+      const SectionType = {
+        INTRO: 'intro',
+        NUMBER_LINE: 'number_line',
+        OPERATIONS: 'operations',
+        PROBLEMS: 'problems',
+        GAMES: 'games'
+      };
+
+      // --- MATH UTILS ---
+
+      const randomInt = (min, max) => {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      };
+
+      const fmt = (n) => n < 0 ? `(${n})` : `${n}`;
+
+      const generateComparison = () => {
+        const a = randomInt(-20, 20);
+        let b = randomInt(-20, 20);
+        while (a === b) b = randomInt(-20, 20);
+        
+        return {
+          id: Math.random().toString(),
+          question: `Zein da handiagoa? ${a} edo ${b}`,
+          correctAnswer: Math.max(a, b),
+          options: [a, b],
+          type: 'compare'
+        };
+      };
+
+      const generateOperation = (type) => {
+        let question = '';
+        let answer = 0;
+
+        if (type === 'combined') {
+          const subtype = randomInt(1, 3);
+          const a = randomInt(-6, 6);
+          const b = randomInt(-6, 6);
+          const c = randomInt(-5, 5);
+
+          if (subtype === 1) {
+              // a + b * c (Priority: Mult first)
+              question = `${fmt(a)} + ${fmt(b)} · ${fmt(c)}`;
+              answer = a + (b * c);
+          } else if (subtype === 2) {
+              // (a + b) * c (Priority: Parens first)
+              question = `(${a} + ${fmt(b)}) · ${fmt(c)}`;
+              answer = (a + b) * c;
+          } else {
+              // a - b - c (Left to right)
+              question = `${fmt(a)} - ${fmt(b)} - ${fmt(c)}`;
+              answer = a - b - c;
+          }
+        } else {
+          let a = randomInt(-10, 10);
+          let b = randomInt(-10, 10);
+
+          if (type === 'add') {
+              question = `${a} + (${b})`;
+              answer = a + b;
+          } else if (type === 'subtract') {
+              question = `${a} - (${b})`;
+              answer = a - b;
+          } else if (type === 'multiply') {
+              question = `${a} · (${b})`;
+              answer = a * b;
+          }
+        }
+
+        const options = new Set([answer]);
+        while (options.size < 4) {
+          const offset = randomInt(-5, 5);
+          if (offset !== 0) options.add(answer + offset);
+          options.add(-answer);
+          options.add(answer + 10); 
+          options.add(answer - 10); 
+        }
+
+        return {
+          id: Math.random().toString(),
+          question,
+          correctAnswer: answer,
+          options: Array.from(options).sort(() => Math.random() - 0.5).slice(0,4),
+          type
+        };
+      };
+
+      const generatePyramid = () => {
+        const c = randomInt(-5, 5);
+        const d = randomInt(-5, 5);
+        const e = randomInt(-5, 5);
+
+        const a = c + d;
+        const b = d + e;
+        const top = a + b;
+
+        const cells = [
+          { id: 'top', value: top, isInput: Math.random() > 0.5, row: 0, col: 0 },
+          { id: 'a', value: a, isInput: Math.random() > 0.5, row: 1, col: 0 },
+          { id: 'b', value: b, isInput: Math.random() > 0.5, row: 1, col: 1 },
+          { id: 'c', value: c, isInput: Math.random() > 0.5, row: 2, col: 0 },
+          { id: 'd', value: d, isInput: Math.random() > 0.5, row: 2, col: 1 },
+          { id: 'e', value: e, isInput: Math.random() > 0.5, row: 2, col: 2 },
+        ];
+
+        let visibleCount = cells.filter(c => !c.isInput).length;
+        while(visibleCount < 3) {
+            const idx = randomInt(0, 5);
+            if(cells[idx].isInput) {
+                cells[idx].isInput = false;
+                visibleCount++;
+            }
+        }
+        return cells;
+      };
+
+      const generateWordProblem = () => {
+        const scenarios = [
+          {
+            type: 'elevator',
+            gen: () => {
+              const start = randomInt(0, 5);
+              const move = randomInt(2, 6);
+              const end = start - move;
+              return {
+                text: `Igogailua ${start}. solairuan dago. ${move} solairu jaitsi ditu. Zein solairutan dago orain?`,
+                correctAnswer: end,
+                unit: 'solairuan',
+                hint: `${start} - ${move} = ? (Gogoratu sotoak negatiboak direla)`
+              };
+            }
+          },
+          {
+            type: 'temperature',
+            gen: () => {
+              const start = randomInt(-5, 5);
+              const change = randomInt(2, 8);
+              const isDrop = Math.random() > 0.5;
+              const end = isDrop ? start - change : start + change;
+              return {
+                text: `Tenperatura ${start}ºC-koa zen. Gero ${change}ºC ${isDrop ? 'jaitsi' : 'igo'} da. Zein da tenperatura berria?`,
+                correctAnswer: end,
+                unit: 'ºC',
+                hint: isDrop ? `${start} - ${change}` : `${start} + ${change}`
+              };
+            }
+          },
+          {
+            type: 'money',
+            gen: () => {
+              const balance = randomInt(10, 50);
+              const debt = randomInt(15, 60);
+              return {
+                text: `Poltsikoan ${balance}€ dituzu, baina lagunari ${debt}€ zor dizkiozu. Zenbatekoa da zure saldo erreala?`,
+                correctAnswer: balance - debt,
+                unit: '€',
+                hint: `${balance} - ${debt}`
+              };
+            }
+          },
+          {
+            type: 'history',
+            gen: () => {
+              const bornYear = randomInt(10, 100);
+              const age = randomInt(30, 80);
+              const bornVal = -bornYear;
+              const diedVal = bornVal + age;
+              return {
+                text: `Matematikari bat K.a. ${bornYear}. urtean jaio zen eta ${age} urterekin hil zen. Zein urtetan hil zen?`,
+                correctAnswer: diedVal,
+                unit: 'urtean',
+                hint: `-${bornYear} + ${age} (K.a. negatiboa da)`
+              };
+            }
+          },
+          {
+            type: 'submarine',
+            gen: () => {
+              const depth = randomInt(10, 50);
+              const dive = randomInt(5, 20);
+              return {
+                text: `Urpekari bat ${depth} metroko sakoneran dago. Gero, beste ${dive} metro jaitsi da. Zein sakoneratan dago orain?`,
+                correctAnswer: -(depth + dive),
+                unit: 'metrora',
+                hint: `-${depth} - ${dive} = ? (Beherantz negatiboa da)`
+              };
+            }
+          },
+          {
+            type: 'game',
+            gen: () => {
+              const points = randomInt(5, 20);
+              const penalty = randomInt(25, 50);
+              return {
+                text: `Joko batean ${points} puntu dituzu, baina tranpa egiteagatik ${penalty} puntu kendu dizkizute. Zenbat puntu dituzu orain?`,
+                correctAnswer: points - penalty,
+                unit: 'puntu',
+                hint: `${points} - ${penalty} = ? (Kendu handiagoa da)`
+              };
+            }
+          }
+        ];
+
+        const scenario = scenarios[randomInt(0, scenarios.length - 1)];
+        return {
+          id: Math.random().toString(),
+          ...scenario.gen()
+        };
+      };
+
+      const generateNumberLinePoints = () => {
+        const points = [];
+        const usedValues = new Set();
+        const letters = ['A', 'B', 'C'];
+        
+        letters.forEach(char => {
+          let val = randomInt(-6, 6);
+          while(usedValues.has(val)) {
+            val = randomInt(-6, 6);
+          }
+          usedValues.add(val);
+          points.push({ id: char, label: char, value: val });
+        });
+        return points;
+      };
+
+      const generateTrueFalse = () => {
+          const type = randomInt(1, 3);
+          let statement = "";
+          let isTrue = false;
+          let explanation = "";
+
+          if (type === 1) { 
+              // Comparisons
+              const a = randomInt(-10, 10);
+              const b = randomInt(-10, 10);
+              const symbol = Math.random() > 0.5 ? '>' : '<';
+              
+              if (a === b) return generateTrueFalse(); 
+
+              statement = `${a} ${symbol} ${b}`;
+              if (symbol === '>') isTrue = a > b;
+              else isTrue = a < b;
+              
+              explanation = `${a} ${isTrue ? (symbol === '>' ? 'handiagoa da' : 'txikiagoa da') : (symbol === '>' ? 'ez da handiagoa' : 'ez da txikiagoa')} ${b} baino.`;
+          } else if (type === 2) {
+              // Absolute Value
+              const a = randomInt(-10, 10);
+              const correctAbs = Math.abs(a);
+              const shownAbs = Math.random() > 0.5 ? correctAbs : -correctAbs;
+              
+              statement = `|${a}| = ${shownAbs}`;
+              isTrue = shownAbs === correctAbs;
+              explanation = `|${a}| beti da positiboa (${correctAbs}).`;
+          } else {
+              // Opposites
+              const a = randomInt(-10, 10);
+              const correctOpp = -a;
+              const shownOpp = Math.random() > 0.3 ? correctOpp : a; 
+              
+              statement = `Aur(${fmt(a)}) = ${fmt(shownOpp)}`;
+              isTrue = shownOpp === correctOpp;
+              explanation = `${a}-ren aurkakoa ${correctOpp} da.`;
+          }
+
+          return {
+              id: Math.random().toString(),
+              statement,
+              isTrue,
+              explanation
+          };
+      };
+
+      const generateMemoryDeck = () => {
+          const pairs = [
+              { q: "-2 + 5", a: "3", val: 3 },
+              { q: "Aur(-4)", a: "4", val: 4 },
+              { q: "|-6|", a: "6", val: 6 },
+              { q: "-3 - 2", a: "-5", val: -5 },
+              { q: "-1 + 1", a: "0", val: 0 },
+              { q: "2 · (-3)", a: "-6", val: -6 }
+          ];
+          const selectedPairs = pairs.sort(() => Math.random() - 0.5).slice(0, 4);
+          const cards = [];
+          selectedPairs.forEach(p => {
+              cards.push({ id: `q-${p.val}`, content: p.q, matchId: p.val, isFlipped: false, isMatched: false, type: 'question' });
+              cards.push({ id: `a-${p.val}`, content: p.a, matchId: p.val, isFlipped: false, isMatched: false, type: 'answer' });
+          });
+          return cards.sort(() => Math.random() - 0.5);
+      };
+
+      // --- COMPONENTS ---
+
+      // 1. Thermometer
+      const Thermometer = () => {
+        const [temp, setTemp] = useState(5);
+        const getHeight = (t) => {
+          const percentage = ((t + 20) / 60) * 100;
+          return Math.min(Math.max(percentage, 0), 100);
+        };
+        const getColor = (t) => {
+          if (t > 25) return 'bg-red-500';
+          if (t > 10) return 'bg-orange-400';
+          if (t > 0) return 'bg-green-400';
+          if (t > -5) return 'bg-blue-300';
+          return 'bg-blue-600';
+        };
+        return (
+          <div className="flex flex-col md:flex-row items-center justify-center gap-8 p-6 bg-white rounded-2xl shadow-sm border border-slate-100 h-full">
+            <div className="w-full md:w-1/2 space-y-4">
+              <h3 className="text-xl font-bold text-slate-800">Tenperatura eta Zenbakiak</h3>
+              <p className="text-slate-600 text-sm">
+                Termometroak zenbaki osoak ulertzeko balio du. 
+                <br/><br/>
+                Zero (0) erreferentzia da.
+                <ul className="list-disc ml-5 mt-2 space-y-1">
+                  <li>Zerotik gora: <span className="text-green-600 font-bold">Positiboak (+)</span></li>
+                  <li>Zerotik behera: <span className="text-blue-600 font-bold">Negatiboak (-)</span></li>
+                </ul>
+              </p>
+              <div className="pt-4">
+                <label className="text-sm font-medium text-slate-700">Mugitu tenperatura:</label>
+                <input 
+                  type="range" 
+                  min="-20" 
+                  max="40" 
+                  value={temp} 
+                  onChange={(e) => setTemp(parseInt(e.target.value))}
+                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-2 accent-slate-800"
+                />
+              </div>
+              <div className="text-center p-4 bg-slate-50 rounded-xl border border-slate-200">
+                 <span className="text-3xl font-bold text-slate-800">{temp > 0 ? `+${temp}` : temp}°C</span>
+                 <p className="text-sm text-slate-500 mt-1">
+                   {temp > 0 ? 'Zero gainetik' : temp < 0 ? 'Zero azpitik' : 'Zero'}
+                 </p>
+              </div>
+            </div>
+            <div className="relative h-64 w-16 bg-slate-200 rounded-full border-4 border-slate-300 flex justify-center shadow-inner">
+              <div className="absolute right-0 top-0 h-full w-full flex flex-col justify-between py-4 pr-1 text-[10px] text-slate-400 font-mono items-end">
+                 <span>40</span>
+                 <span>20</span>
+                 <span>0</span>
+                 <span>-20</span>
+              </div>
+              <div 
+                className={`absolute bottom-2 w-8 rounded-t-lg rounded-b-full transition-all duration-300 ${getColor(temp)} shadow-[0_0_15px_rgba(0,0,0,0.1)]`}
+                style={{ height: `${getHeight(temp)}%` }}
+              >
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
+                  {temp < 0 ? <Snowflake size={20} className="text-blue-400 animate-pulse" /> : temp > 25 ? <Sun size={20} className="text-orange-500 animate-spin-slow" /> : null}
+                </div>
+              </div>
+              <div className="absolute bottom-[33.3%] w-full h-0.5 bg-slate-400 z-10 opacity-50 border-t border-dashed border-slate-600"></div>
+            </div>
+          </div>
+        );
+      };
+
+      // 2. ElevatorVisual
+      const ElevatorVisual = () => {
+        const floors = [3, 2, 1, 0, -1, -2, -3];
+        return (
+          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white p-6 rounded-3xl shadow-lg flex flex-col sm:flex-row items-center gap-6 h-full">
+              <div className="flex-1 text-center sm:text-left">
+                  <h2 className="text-2xl font-bold mb-2">Igogailua</h2>
+                  <p className="opacity-90 text-sm">
+                      Eraikinetan, sotoak adierazteko zenbaki negatiboak erabiltzen ditugu.
+                      <br/><br/>
+                      <span className="bg-white/20 px-2 py-1 rounded text-xs font-mono">0 solairua</span> = Behea
+                      <br/>
+                      <span className="bg-white/20 px-2 py-1 rounded text-xs font-mono">-1 solairua</span> = 1. Sotoa
+                  </p>
+              </div>
+              <div className="bg-blue-900/40 p-4 rounded-xl border-2 border-blue-300/30 relative min-w-[120px]">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-full bg-slate-400/30 z-0"></div>
+                  <div className="flex flex-col gap-2 relative z-10">
+                      {floors.map(floor => (
+                          <div key={floor} className="flex items-center gap-3 group">
+                              <div className={`w-14 h-10 rounded-lg border-2 flex items-center justify-center font-mono font-bold text-lg shadow-md transition-all duration-300
+                                  ${floor === 0 
+                                      ? 'bg-white border-white text-blue-900 scale-110 ring-4 ring-blue-300/50 z-10' 
+                                      : floor > 0 
+                                          ? 'bg-sky-500 border-sky-400 text-white hover:bg-sky-400' 
+                                          : 'bg-indigo-700 border-indigo-500 text-white hover:bg-indigo-600'
+                                  }`}>
+                                  {floor}
+                              </div>
+                              <span className="text-[10px] uppercase tracking-wider opacity-80 font-bold w-16 text-left drop-shadow-md">
+                                  {floor === 0 ? 'Behea' : floor > 0 ? `${floor}. Sol` : `Soto ${Math.abs(floor)}`}
+                              </span>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+          </div>
+        );
+      };
+
+      // 3. NumberLine
+      const NumberLine = () => {
+        const [highlighted, setHighlighted] = useState(null);
+        const range = Array.from({ length: 21 }, (_, i) => i - 10);
+        return (
+          <div className="w-full p-6 bg-white rounded-2xl shadow-sm border border-slate-100 my-6">
+            <h3 className="text-xl font-bold text-slate-800 mb-4">Zuzen Numerikoa</h3>
+            <p className="text-slate-600 mb-6 text-sm">
+              Egin klik zenbakietan. <span className="font-bold text-blue-600">Eskuinean</span> dauden zenbakiak beti handiagoak dira. <span className="font-bold text-red-500">Ezkerrean</span> daudenak, txikiagoak.
+            </p>
+            <div className="relative flex items-center justify-between h-24 px-4 overflow-x-auto md:overflow-hidden md:justify-center gap-1 md:gap-2 select-none">
+              <div className="absolute w-full h-1 bg-slate-300 top-1/2 transform -translate-y-1/2 rounded-full z-0"></div>
+              {range.map((num) => (
+                <div key={num} className="relative z-10 flex flex-col items-center group">
+                  <div className={`w-1 h-4 mb-2 ${num % 5 === 0 ? 'h-6 bg-slate-800' : 'bg-slate-400'}`}></div>
+                  <button
+                    onClick={() => setHighlighted(num)}
+                    className={`
+                      w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300
+                      ${highlighted === num 
+                        ? num < 0 ? 'bg-red-500 text-white scale-125 shadow-lg' : num > 0 ? 'bg-blue-500 text-white scale-125 shadow-lg' : 'bg-slate-800 text-white scale-125 shadow-lg'
+                        : 'bg-white border-2 border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-500'}
+                    `}
+                  >
+                    {num}
+                  </button>
+                  {highlighted === num && (
+                    <div className="absolute -bottom-12 whitespace-nowrap text-xs font-medium bg-slate-800 text-white px-2 py-1 rounded">
+                      {num < 0 ? 'Negatiboa' : num > 0 ? 'Positiboa' : 'Zeroa'}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="mt-12 flex justify-center gap-8 text-sm text-slate-500">
+              <div className="flex items-center gap-2"><ArrowLeft size={16} /><span>Txikiagoak</span></div>
+              <div className="flex items-center gap-2"><span>Handiagoak</span><ArrowRight size={16} /></div>
+            </div>
+          </div>
+        );
+      };
+
+      // 4. NumberLineHunt
+      const NumberLineHunt = () => {
+        const [points, setPoints] = useState([]);
+        const [inputs, setInputs] = useState({});
+        const [checked, setChecked] = useState(false);
+        const initGame = () => {
+          setPoints(generateNumberLinePoints());
+          setInputs({});
+          setChecked(false);
+        };
+        useEffect(() => { initGame(); }, []);
+        const handleCheck = () => { setChecked(true); };
+        const range = Array.from({ length: 15 }, (_, i) => i - 7);
+        return (
+          <div className="w-full p-6 bg-white rounded-2xl shadow-sm border border-slate-100">
+              <div className="flex justify-between items-center mb-6">
+                  <div>
+                      <h3 className="text-xl font-bold text-slate-800">Non daude?</h3>
+                      <p className="text-slate-600 text-sm">Idatzi letra bakoitzari dagokion zenbaki osoa.</p>
+                  </div>
+                  <button onClick={initGame} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors">
+                      <RefreshCw size={18} className="text-slate-500" />
+                  </button>
+              </div>
+              <div className="relative h-24 flex items-center justify-center mb-8 overflow-x-auto">
+                   <div className="absolute w-[90%] h-1 bg-slate-800 rounded-full"></div>
+                   <div className="relative flex justify-between w-[90%] min-w-[600px]">
+                       {range.map(num => {
+                           const point = points.find(p => p.value === num);
+                           return (
+                              <div key={num} className="flex flex-col items-center relative group">
+                                  <div className="w-0.5 h-4 bg-slate-800 mb-2"></div>
+                                  <span className="text-xs text-slate-400 font-mono">{num}</span>
+                                  {point && (
+                                      <div className="absolute -top-8 flex flex-col items-center animate-bounce-small">
+                                          <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold shadow-md z-10">{point.label}</div>
+                                          <div className="w-0.5 h-4 bg-indigo-600"></div>
+                                      </div>
+                                  )}
+                              </div>
+                           );
+                       })}
+                   </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
+                  {points.map(p => {
+                      const val = inputs[p.id] || '';
+                      const isCorrect = parseInt(val) === p.value;
+                      return (
+                          <div key={p.id} className="flex flex-col items-center">
+                              <label className="font-bold text-indigo-900 mb-1 text-lg">{p.label} =</label>
+                              <div className="relative">
+                                  <input 
+                                      type="number" 
+                                      value={val}
+                                      onChange={(e) => {
+                                          setChecked(false);
+                                          setInputs({...inputs, [p.id]: e.target.value});
+                                      }}
+                                      className={`w-20 h-12 text-center text-lg font-bold rounded-xl border-2 outline-none transition-colors 
+                                        ${checked 
+                                              ? isCorrect 
+                                                  ? 'border-green-500 bg-green-50 text-green-700' 
+                                                  : 'border-red-500 bg-red-50 text-red-700'
+                                              : 'bg-white border-slate-200 focus:border-indigo-500 text-slate-800'}`}
+                                  />
+                                  {checked && (
+                                      <div className="absolute -right-6 top-3">
+                                          {isCorrect ? <Check size={20} className="text-green-500" /> : <X size={20} className="text-red-500" />}
+                                      </div>
+                                  )}
+                              </div>
+                          </div>
+                      );
+                  })}
+              </div>
+              <div className="mt-8 text-center">
+                  <button 
+                      onClick={handleCheck}
+                      disabled={Object.keys(inputs).length < 3}
+                      className="px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl active:scale-95"
+                  >
+                      Egiaztatu
+                  </button>
+              </div>
+          </div>
+        );
+      };
+
+      // 5. MathPyramid
+      const MathPyramid = () => {
+        const [cells, setCells] = useState([]);
+        const [userInputs, setUserInputs] = useState({});
+        const [status, setStatus] = useState('idle');
+        const initGame = () => {
+          setCells(generatePyramid());
+          setUserInputs({});
+          setStatus('idle');
+        };
+        useEffect(() => { initGame(); }, []);
+        const handleInputChange = (id, value) => {
+          setUserInputs(prev => ({ ...prev, [id]: value }));
+          setStatus('idle');
+        };
+        const checkAnswers = () => {
+          let allCorrect = true;
+          cells.forEach(cell => {
+            if (cell.isInput) {
+              const userVal = parseInt(userInputs[cell.id]);
+              if (userVal !== cell.value) allCorrect = false;
+            }
+          });
+          setStatus(allCorrect ? 'correct' : 'incorrect');
+        };
+        const renderBlock = (cell) => {
+          const isCorrect = status === 'correct';
+          const isError = status === 'incorrect' && cell.isInput && parseInt(userInputs[cell.id]) !== cell.value;
+          return (
+            <div className="relative w-16 h-12 md:w-20 md:h-16 flex items-center justify-center">
+              <div className={`absolute inset-0 border-2 rounded-lg shadow-sm flex items-center justify-center text-lg font-bold transition-colors
+                  ${cell.isInput 
+                      ? isError ? 'bg-red-50 border-red-300 text-red-800' : isCorrect ? 'bg-green-50 border-green-300 text-green-800' : 'bg-white border-indigo-200 text-slate-800' 
+                      : 'bg-slate-100 border-slate-300 text-slate-500 select-none'}`}>
+                  {cell.isInput ? (
+                      <input 
+                          type="number" 
+                          value={userInputs[cell.id] || ''}
+                          onChange={(e) => handleInputChange(cell.id, e.target.value)}
+                          className="w-full h-full text-center bg-transparent outline-none appearance-none"
+                          placeholder="?"
+                      />
+                  ) : ( cell.value )}
+              </div>
+            </div>
+          );
+        };
+        const rows = [
+            cells.filter(c => c.row === 0),
+            cells.filter(c => c.row === 1),
+            cells.filter(c => c.row === 2),
+        ];
+        return (
+          <div className="w-full p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-3xl border border-indigo-100">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                  <h3 className="text-xl font-bold text-indigo-900">Piramide Magikoa</h3>
+                  <p className="text-sm text-indigo-600">Beheko bi laukien batura goikoa da.</p>
+              </div>
+              <button onClick={initGame} className="p-2 bg-white rounded-full shadow-sm hover:bg-indigo-100 transition-colors">
+                  <RefreshCw size={20} className="text-indigo-600" />
+              </button>
+            </div>
+            <div className="flex flex-col items-center gap-2 mb-8">
+              {rows.map((row, i) => (
+                  <div key={i} className="flex gap-2">
+                      {row.sort((a,b) => a.col - b.col).map(cell => (
+                          <div key={cell.id}>{renderBlock(cell)}</div>
+                      ))}
+                  </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-center gap-4">
+              <button onClick={checkAnswers} className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-200">Egiaztatu</button>
+              {status === 'correct' && <div className="flex items-center text-green-600 font-bold animate-bounce"><CheckCircle size={20} className="mr-2" /> Oso ongi!</div>}
+              {status === 'incorrect' && <div className="flex items-center text-red-500 font-bold"><AlertCircle size={20} className="mr-2" /> Saiatu berriro</div>}
+            </div>
+          </div>
+        );
+      };
+
+      // 6. OperationsDrill
+      const OperationsDrill = () => {
+        const [mode, setMode] = useState('add');
+        const [currentExercise, setCurrentExercise] = useState(null);
+        const [feedback, setFeedback] = useState(null);
+        const [showHint, setShowHint] = useState(false);
+        useEffect(() => { nextExercise(); }, [mode]);
+        const nextExercise = () => {
+          setFeedback(null);
+          setShowHint(false);
+          if (mode === 'compare') setCurrentExercise(generateComparison());
+          else setCurrentExercise(generateOperation(mode));
+        };
+        const handleAnswer = (val) => {
+          if (!currentExercise) return;
+          if (val === currentExercise.correctAnswer) {
+            setFeedback('correct');
+            setTimeout(nextExercise, 1200);
+          } else {
+            setFeedback('wrong');
+            setShowHint(true);
+          }
+        };
+        const getLabel = (m) => {
+            switch(m) {
+                case 'compare': return 'Konparatu (<,>)';
+                case 'add': return 'Batuketak (+)';
+                case 'subtract': return 'Kenketak (-)';
+                case 'multiply': return 'Biderketak (·)';
+                case 'combined': return 'Konbinatuak';
+                default: return m;
+            }
+        };
+        return (
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+            <div className="flex border-b border-slate-100 overflow-x-auto scrollbar-hide">
+              {['compare', 'add', 'subtract', 'multiply', 'combined'].map((m) => (
+                <button key={m} onClick={() => setMode(m)} className={`flex-1 py-4 px-4 text-sm font-medium transition-colors whitespace-nowrap ${mode === m ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>{getLabel(m)}</button>
+              ))}
+            </div>
+            <div className="p-6 md:p-8 min-h-[320px] flex flex-col items-center justify-center text-center relative">
+              <div className="absolute top-4 right-4 opacity-20 pointer-events-none hidden md:block">
+                 {mode !== 'compare' && mode !== 'combined' && (
+                   <div className="text-xs font-mono text-right space-y-1"><div>+(+) → +</div><div>-(-) → +</div><div>+(-) → -</div><div>-(+) → -</div></div>
+                 )}
+                 {mode === 'combined' && (
+                   <div className="text-xs font-mono text-right space-y-1"><div>1. Parentesiak ()</div><div>2. Biderketak (·)</div><div>3. Batu/Kendu (+/-)</div></div>
+                 )}
+              </div>
+              {currentExercise && (
+                  <>
+                    <h3 className="text-3xl md:text-5xl font-bold text-slate-800 mb-10 font-mono tracking-wider">
+                      {currentExercise.question} <span className="text-slate-300">?</span>
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4 w-full max-w-md">
+                      {currentExercise.options?.map((opt, idx) => (
+                        <button key={idx} onClick={() => handleAnswer(opt)} className="p-4 text-xl font-bold bg-slate-50 border-b-4 border-slate-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 hover:translate-y-1 active:border-b-0 active:translate-y-2 text-slate-700 transition-all">
+                          {opt > 0 ? `+${opt}` : opt}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="h-12 mt-6 flex items-center justify-center">
+                      {feedback === 'correct' && <span className="inline-flex items-center px-4 py-2 rounded-full bg-green-100 text-green-700 font-bold text-lg animate-bounce">Zuzena! Bikain!</span>}
+                      {feedback === 'wrong' && <div className="text-red-500 font-bold text-lg flex flex-col items-center animate-shake"><span>Okerra... begiratu ondo zeinuak!</span></div>}
+                    </div>
+                    {mode !== 'compare' && (<div className={`mt-2 text-sm text-slate-500 transition-opacity duration-500 ${showHint ? 'opacity-100' : 'opacity-0'}`}>Aholkua: Zeinu berdinak → (+), Zeinu ezberdinak → (-)</div>)}
+                    <button onClick={nextExercise} className="mt-6 text-slate-400 hover:text-slate-600 flex items-center text-sm hover:underline">Saltatu <ArrowRight size={14} className="ml-1" /></button>
+                  </>
+              )}
+            </div>
+          </div>
+        );
+      };
+
+      // 7. WordProblems
+      const WordProblems = () => {
+        const [problem, setProblem] = useState(generateWordProblem());
+        const [answer, setAnswer] = useState('');
+        const [status, setStatus] = useState('idle');
+        const [showHint, setShowHint] = useState(false);
+        const handleCheck = () => {
+          if (parseInt(answer) === problem.correctAnswer) setStatus('correct');
+          else setStatus('wrong');
+        };
+        const next = () => {
+          setProblem(generateWordProblem());
+          setAnswer('');
+          setStatus('idle');
+          setShowHint(false);
+        };
+        return (
+          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-md border border-slate-100 h-full flex flex-col">
+              <div className="flex-grow">
+                  <div className="flex items-center gap-2 mb-4">
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wide rounded-full">Problema</span>
+                  </div>
+                  <p className="text-xl md:text-2xl font-medium text-slate-800 leading-relaxed mb-8">{problem.text}</p>
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+                      <div className="flex items-center gap-4">
+                          <input type="number" value={answer} onChange={(e) => { setStatus('idle'); setAnswer(e.target.value); }} placeholder="?" className="w-full p-3 text-xl rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all" onKeyDown={(e) => e.key === 'Enter' && handleCheck()} />
+                          <span className="text-slate-500 font-bold whitespace-nowrap">{problem.unit}</span>
+                      </div>
+                  </div>
+                  {status === 'wrong' && !showHint && <button onClick={() => setShowHint(true)} className="text-sm text-amber-600 flex items-center gap-1 hover:underline mb-4"><Lightbulb size={14} /> Pistatxo bat nahi?</button>}
+                  {showHint && <div className="mb-4 text-sm text-amber-700 bg-amber-50 p-2 rounded border border-amber-100 animate-in fade-in">Pista: {problem.hint}</div>}
+              </div>
+              <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
+                   <div className="h-6">
+                      {status === 'correct' && <span className="text-green-600 font-bold animate-pulse">Zuzena! Oso ongi!</span>}
+                      {status === 'wrong' && <span className="text-red-500 font-bold">Saiatu berriro...</span>}
+                   </div>
+                   {status === 'correct' ? <button onClick={next} className="bg-slate-800 text-white px-6 py-2 rounded-lg hover:bg-slate-700 flex items-center gap-2 transition-colors">Hurrengoa <ArrowRight size={16} /></button> : <button onClick={handleCheck} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 shadow-md hover:shadow-lg transition-all active:scale-95">Egiaztatu</button>}
+              </div>
+          </div>
+        );
+      };
+
+      // 8. TrueFalseGame
+      const TrueFalseGame = () => {
+        const [q, setQ] = useState(generateTrueFalse());
+        const [streak, setStreak] = useState(0);
+        const [status, setStatus] = useState('idle');
+        const handleGuess = (guess) => {
+          if (status !== 'idle') return;
+          if (guess === q.isTrue) {
+              setStatus('correct');
+              setStreak(s => s + 1);
+          } else {
+              setStatus('wrong');
+              setStreak(0);
+          }
+        };
+        const next = () => { setQ(generateTrueFalse()); setStatus('idle'); };
+        return (
+          <div className="bg-white p-6 rounded-3xl shadow-lg border border-slate-100 flex flex-col items-center text-center relative overflow-hidden">
+            <div className="absolute top-4 right-4 bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold">Racha: {streak} 🔥</div>
+            <h3 className="text-xl font-bold text-slate-800 mb-6">Egia ala Gezurra?</h3>
+            <div className="w-full py-12 bg-slate-50 rounded-2xl border-2 border-slate-200 mb-8 flex items-center justify-center">
+               <span className="text-4xl md:text-5xl font-mono font-bold text-slate-800 tracking-wider">{q.statement}</span>
+            </div>
+            {status === 'idle' && (
+                <div className="flex gap-4 w-full max-w-xs">
+                    <button onClick={() => handleGuess(false)} className="flex-1 py-4 bg-red-100 text-red-600 rounded-xl font-bold hover:bg-red-200 transition-colors flex flex-col items-center gap-2 border border-red-200"><ThumbsDown /> Gezurra</button>
+                    <button onClick={() => handleGuess(true)} className="flex-1 py-4 bg-green-100 text-green-600 rounded-xl font-bold hover:bg-green-200 transition-colors flex flex-col items-center gap-2 border border-green-200"><ThumbsUp /> Egia</button>
+                </div>
+            )}
+            {status !== 'idle' && (
+                <div className="animate-in fade-in zoom-in duration-300 w-full">
+                    <div className={`p-4 rounded-xl mb-4 ${status === 'correct' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        <div className="flex items-center justify-center gap-2 font-bold text-lg mb-1">{status === 'correct' ? <Check /> : <X />} {status === 'correct' ? 'Zuzena!' : 'Okerra!'}</div>
+                        <p className="text-sm opacity-90">{q.explanation}</p>
+                    </div>
+                    <button onClick={next} className="px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all">Hurrengoa</button>
+                </div>
+            )}
+          </div>
+        );
+      };
+
+      // 9. MemoryGame
+      const MemoryGame = () => {
+        const [cards, setCards] = useState([]);
+        const [selected, setSelected] = useState([]);
+        const [isLocked, setIsLocked] = useState(false);
+        useEffect(() => { restart(); }, []);
+        const restart = () => { setCards(generateMemoryDeck()); setSelected([]); setIsLocked(false); };
+        const handleCardClick = (card) => {
+            if (isLocked || card.isFlipped || card.isMatched) return;
+            const newCards = cards.map(c => c.id === card.id ? { ...c, isFlipped: true } : c);
+            setCards(newCards);
+            const newSelected = [...selected, card];
+            setSelected(newSelected);
+            if (newSelected.length === 2) {
+                setIsLocked(true);
+                checkMatch(newSelected, newCards);
+            }
+        };
+        const checkMatch = (currentSelected, currentCards) => {
+            const [c1, c2] = currentSelected;
+            const isMatch = c1.matchId === c2.matchId;
+            setTimeout(() => {
+                setCards(prev => prev.map(c => {
+                    if (c.id === c1.id || c.id === c2.id) return isMatch ? { ...c, isMatched: true } : { ...c, isFlipped: false };
+                    return c;
+                }));
+                setSelected([]);
+                setIsLocked(false);
+            }, 1000);
+        };
+        const allMatched = cards.length > 0 && cards.every(c => c.isMatched);
+        return (
+          <div className="bg-white p-6 rounded-3xl shadow-lg border border-slate-100">
+              <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold text-slate-800">Bikoteak Bilatu</h3>
+                  <button onClick={restart} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200"><RefreshCw size={18} /></button>
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                  {cards.map(card => (
+                      <button key={card.id} onClick={() => handleCardClick(card)} className={`aspect-square rounded-xl flex items-center justify-center text-sm md:text-lg font-bold transition-all duration-500 transform perspective-1000 ${card.isFlipped || card.isMatched ? 'bg-indigo-600 text-white rotate-y-180' : 'bg-slate-200 text-transparent hover:bg-slate-300'} ${card.isMatched ? 'opacity-50 cursor-default' : ''}`}>
+                          {(card.isFlipped || card.isMatched) && card.content}
+                      </button>
+                  ))}
+              </div>
+              {allMatched && <div className="mt-6 text-center p-4 bg-green-100 text-green-800 rounded-xl font-bold animate-bounce">Zorionak! Guztiak aurkitu dituzu! 🎉</div>}
+          </div>
+        );
+      };
+
+      // --- APP COMPONENT ---
+      const App = () => {
+        const [currentSection, setCurrentSection] = useState(SectionType.INTRO);
+        const [isMenuOpen, setIsMenuOpen] = useState(false);
+        const sections = [
+          { id: SectionType.INTRO, label: 'Zer dira?', icon: <Home size={20} /> },
+          { id: SectionType.NUMBER_LINE, label: 'Ordena', icon: <Layout size={20} /> },
+          { id: SectionType.OPERATIONS, label: 'Eragiketak', icon: <Calculator size={20} /> },
+          { id: SectionType.PROBLEMS, label: 'Problemak', icon: <BookOpen size={20} /> },
+          { id: SectionType.GAMES, label: 'Jolastu', icon: <Star size={20} /> },
+        ];
+        const renderContent = () => {
+          switch (currentSection) {
+            case SectionType.INTRO:
+              return (
+                <div className="space-y-8 animate-in fade-in duration-500 pb-10">
+                  <div className="text-center max-w-2xl mx-auto mb-10">
+                    <h1 className="text-4xl font-extrabold text-slate-900 mb-4"><span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">Zenbaki Osoak</span></h1>
+                    <p className="text-lg text-slate-600">Mundu errealean, zenbakiak ez dira beti positiboak. Zorrak, hotza, eta sotoak adierazteko... negatiboak behar ditugu!</p>
+                  </div>
+                  <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8 items-stretch">
+                    <div className="glass-panel p-6 rounded-3xl shadow-xl flex flex-col">
+                      <h2 className="text-2xl font-bold text-slate-800 mb-4">Tenperatura</h2>
+                      <div className="flex-grow"><Thermometer /></div>
+                    </div>
+                    <div className="flex flex-col gap-8 h-full">
+                      <div className="flex-grow"><ElevatorVisual /></div>
+                      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                          <h2 className="text-xl font-bold text-slate-800 mb-2">Zenbaki multzoak</h2>
+                          <p className="text-slate-600 text-sm mb-4"><strong>N</strong> (Arruntak): 0, 1, 2, 3...<br/><strong>Z</strong> (Osoak): ...-3, -2, -1, 0, 1, 2, 3...</p>
+                          <div className="relative h-24 w-full flex items-center justify-center">
+                              <div className="absolute w-48 h-20 border-2 border-purple-200 rounded-[50%] flex items-center justify-center z-0 bg-purple-50"><span className="text-purple-300 font-bold absolute top-1 right-4">Z</span></div>
+                              <div className="absolute w-24 h-12 border-2 border-blue-200 rounded-[50%] flex items-center justify-center z-10 bg-white"><span className="text-blue-800 font-bold">N</span></div>
+                          </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            case SectionType.NUMBER_LINE:
+              return (
+                <div className="space-y-8 animate-in slide-in-from-right duration-500 pb-10">
+                   <div className="text-center mb-8"><h2 className="text-3xl font-bold text-slate-800">Ordena eta Zuzena</h2><p className="text-slate-600 mt-2">Eskuinerantz handiagoak, ezkerrerantz txikiagoak.</p></div>
+                   <NumberLine />
+                   <div className="my-8"><NumberLineHunt /></div>
+                   <div className="grid md:grid-cols-2 gap-6 mt-8">
+                      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                          <h3 className="text-xl font-bold text-slate-800 mb-3">Balio Absolutua</h3>
+                          <p className="text-slate-600 mb-4">Zenbaki batetik zerora dagoen distantzia da. Beti positiboa da.</p>
+                          <div className="flex justify-around items-center text-lg font-mono bg-slate-50 p-4 rounded-xl"><div>|-5| = <span className="text-blue-600 font-bold">5</span></div><div>|+3| = <span className="text-blue-600 font-bold">3</span></div></div>
+                      </div>
+                      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                          <h3 className="text-xl font-bold text-slate-800 mb-3">Aurkakoa Aur()</h3>
+                          <p className="text-slate-600 mb-4">Distantzia berdinera dagoen zenbakia, baina beste aldean.</p>
+                          <div className="flex justify-around items-center text-lg font-mono bg-slate-50 p-4 rounded-xl"><div>Aur(-5) = <span className="text-red-600 font-bold">+5</span></div><div>Aur(+4) = <span className="text-red-600 font-bold">-4</span></div></div>
+                      </div>
+                   </div>
+                </div>
+              );
+            case SectionType.OPERATIONS:
+              return (
+                <div className="space-y-8 animate-in slide-in-from-right duration-500 pb-10">
+                   <div className="text-center mb-8"><h2 className="text-3xl font-bold text-slate-800">Eragiketak</h2><p className="text-slate-600 mt-2">Parentesiak kentzeko araua ikasi.</p></div>
+                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                       <div className="bg-green-500 text-white p-4 rounded-2xl text-center shadow-lg flex flex-col items-center justify-center"><div className="text-xs uppercase tracking-widest opacity-80 mb-1">Berdinak</div><div className="text-2xl font-bold">+(+) → +</div></div>
+                       <div className="bg-green-500 text-white p-4 rounded-2xl text-center shadow-lg flex flex-col items-center justify-center"><div className="text-xs uppercase tracking-widest opacity-80 mb-1">Berdinak</div><div className="text-2xl font-bold">-(-) → +</div></div>
+                       <div className="bg-red-500 text-white p-4 rounded-2xl text-center shadow-lg flex flex-col items-center justify-center"><div className="text-xs uppercase tracking-widest opacity-80 mb-1">Ezberdinak</div><div className="text-2xl font-bold">+(-) → -</div></div>
+                       <div className="bg-red-500 text-white p-4 rounded-2xl text-center shadow-lg flex flex-col items-center justify-center"><div className="text-xs uppercase tracking-widest opacity-80 mb-1">Ezberdinak</div><div className="text-2xl font-bold">-(+) → -</div></div>
+                   </div>
+                   <div className="flex flex-col lg:flex-row gap-8"><div className="w-full"><OperationsDrill /></div></div>
+                </div>
+              );
+            case SectionType.PROBLEMS:
+              return (
+                 <div className="space-y-8 animate-in slide-in-from-right duration-500 pb-10">
+                    <div className="text-center mb-8"><h2 className="text-3xl font-bold text-slate-800">Problemak</h2><p className="text-slate-600 mt-2">Erabili zenbaki osoak eguneroko egoeretan.</p></div>
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <WordProblems />
+                        <WordProblems />
+                        <WordProblems />
+                        <WordProblems />
+                    </div>
+                    <div className="bg-indigo-50 rounded-2xl p-8 text-center border border-indigo-100"><h3 className="text-xl font-bold text-indigo-900 mb-2">Gogoratu!</h3><p className="text-indigo-700">"Zorrak", "gastatu" eta "K.a." negatiboak dira.<br/>"Irabazi", "eman" eta "K.o." positiboak dira.</p></div>
+                 </div>
+              );
+            case SectionType.GAMES:
+                return (
+                    <div className="space-y-12 animate-in slide-in-from-right duration-500 pb-10">
+                        <div className="text-center"><h2 className="text-3xl font-bold text-slate-800">Jolas Gunea</h2><p className="text-slate-600 mt-2">Ikasi jolasten!</p></div>
+                        <div className="grid gap-8">
+                            <div className="bg-white/50 p-4 rounded-3xl border border-slate-200"><div className="mb-4 flex items-center gap-2"><span className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-white font-bold">1</span><h3 className="text-xl font-bold text-slate-700">Piramide Magikoa</h3></div><div className="max-w-2xl mx-auto"><MathPyramid /></div></div>
+                            <div className="grid lg:grid-cols-2 gap-8">
+                               <div className="bg-white/50 p-4 rounded-3xl border border-slate-200 h-full"><div className="mb-4 flex items-center gap-2"><span className="w-8 h-8 bg-green-400 rounded-full flex items-center justify-center text-white font-bold">2</span><h3 className="text-xl font-bold text-slate-700">Egia ala Gezurra?</h3></div><TrueFalseGame /></div>
+                               <div className="bg-white/50 p-4 rounded-3xl border border-slate-200 h-full"><div className="mb-4 flex items-center gap-2"><span className="w-8 h-8 bg-purple-400 rounded-full flex items-center justify-center text-white font-bold">3</span><h3 className="text-xl font-bold text-slate-700">Bikoteak</h3></div><MemoryGame /></div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            default: return <div>Atala eraikitzen...</div>;
+          }
+        };
+
+        return (
+          <div className="min-h-screen bg-slate-50 flex flex-col text-slate-800">
+            <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
+              <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center justify-between h-16">
+                  <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentSection(SectionType.INTRO)}>
+                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">Z</div>
+                    <span className="font-bold text-xl tracking-tight text-slate-800">ZenbakiOsoak</span>
+                  </div>
+                  <div className="hidden md:flex space-x-4">
+                    {sections.map((item) => (
+                      <button key={item.id} onClick={() => setCurrentSection(item.id)} className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${currentSection === item.id ? 'bg-slate-800 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>
+                        {item.icon}{item.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="md:hidden"><button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-slate-600">{isMenuOpen ? <X /> : <Menu />}</button></div>
+                </div>
+              </div>
+              {isMenuOpen && (
+                <div className="md:hidden bg-white border-b border-slate-100 absolute w-full shadow-lg z-50">
+                  <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                    {sections.map((item) => (
+                      <button key={item.id} onClick={() => { setCurrentSection(item.id); setIsMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium ${currentSection === item.id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600'}`}>
+                        {item.icon}{item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </nav>
+            <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">{renderContent()}</main>
+            <footer className="bg-white border-t border-slate-200 mt-auto">
+              <div className="max-w-5xl mx-auto py-6 px-4 text-center text-slate-500 text-sm">
+                <p>Eremu Zientifiko Matematikoa - 1. DBH</p>
+                <p className="mt-1 opacity-75">Ikasleentzako material didaktikoa</p>
+              </div>
+            </footer>
+          </div>
+        );
+      };
+
+      const root = createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
