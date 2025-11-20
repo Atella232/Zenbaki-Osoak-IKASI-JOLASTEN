@@ -261,23 +261,35 @@ export const generateTrueFalse = (): TrueFalseQuestion => {
         
         explanation = `${a} ${isTrue ? (symbol === '>' ? 'handiagoa da' : 'txikiagoa da') : (symbol === '>' ? 'ez da handiagoa' : 'ez da txikiagoa')} ${b} baino.`;
     } else if (type === 2) {
-        // Absolute Value e.g. |-5| = 5
-        const a = randomInt(-10, 10);
-        const correctAbs = Math.abs(a);
-        const shownAbs = Math.random() > 0.5 ? correctAbs : -correctAbs; // |-5| = -5 (False)
-        
-        statement = `|${a}| = ${shownAbs}`;
-        isTrue = shownAbs === correctAbs;
-        explanation = `|${a}| beti da positiboa (${correctAbs}).`;
+        // Addition statements e.g. (-3) + 5 = 2
+        const a = randomInt(-9, 9);
+        const b = randomInt(-9, 9);
+        const correctSum = a + b;
+        let shownSum = correctSum;
+        if (Math.random() > 0.5) {
+            let delta = randomInt(-3, 3);
+            while (delta === 0) delta = randomInt(-3, 3);
+            shownSum = correctSum + delta;
+        }
+
+        statement = `${fmt(a)} + ${fmt(b)} = ${fmt(shownSum)}`;
+        isTrue = shownSum === correctSum;
+        explanation = `${fmt(a)} + ${fmt(b)} = ${fmt(correctSum)} egiten da.`;
     } else {
-        // Opposites e.g. Au(-3) = 3
-        const a = randomInt(-10, 10);
-        const correctOpp = -a;
-        const shownOpp = Math.random() > 0.3 ? correctOpp : a; // Sometimes show wrong
-        
-        statement = `Aur(${fmt(a)}) = ${fmt(shownOpp)}`;
-        isTrue = shownOpp === correctOpp;
-        explanation = `${a}-ren aurkakoa ${correctOpp} da.`;
+        // Multiplication statements e.g. (-2) · 3 = -6
+        const a = randomInt(-6, 6);
+        const b = randomInt(-6, 6);
+        const correctProd = a * b;
+        let shownProd = correctProd;
+        if (Math.random() > 0.5) {
+            let delta = randomInt(-4, 4);
+            while (delta === 0) delta = randomInt(-4, 4);
+            shownProd = correctProd + delta;
+        }
+
+        statement = `${fmt(a)} · ${fmt(b)} = ${fmt(shownProd)}`;
+        isTrue = shownProd === correctProd;
+        explanation = `${fmt(a)} · ${fmt(b)} = ${fmt(correctProd)} da.`;
     }
 
     return {
@@ -292,11 +304,11 @@ export const generateTrueFalse = (): TrueFalseQuestion => {
 export const generateMemoryDeck = (): MemoryCard[] => {
     const pairs = [
         { q: "-2 + 5", a: "3", val: 3 },
-        { q: "Aur(-4)", a: "4", val: 4 },
-        { q: "|-6|", a: "6", val: 6 },
-        { q: "-3 - 2", a: "-5", val: -5 },
-        { q: "-1 + 1", a: "0", val: 0 },
-        { q: "2 · (-3)", a: "-6", val: -6 }
+        { q: "4 - 9", a: "-5", val: -5 },
+        { q: "(-3) · 2", a: "-6", val: -6 },
+        { q: "(-6) + (-1)", a: "-7", val: -7 },
+        { q: "5 - (-3)", a: "8", val: 8 },
+        { q: "2 · (-4)", a: "-8", val: -8 }
     ];
 
     // Pick 4 random pairs

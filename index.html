@@ -309,23 +309,35 @@
               
               explanation = `${a} ${isTrue ? (symbol === '>' ? 'handiagoa da' : 'txikiagoa da') : (symbol === '>' ? 'ez da handiagoa' : 'ez da txikiagoa')} ${b} baino.`;
           } else if (type === 2) {
-              // Absolute Value
-              const a = randomInt(-10, 10);
-              const correctAbs = Math.abs(a);
-              const shownAbs = Math.random() > 0.5 ? correctAbs : -correctAbs;
-              
-              statement = `|${a}| = ${shownAbs}`;
-              isTrue = shownAbs === correctAbs;
-              explanation = `|${a}| beti da positiboa (${correctAbs}).`;
+              // Addition statements
+              const a = randomInt(-9, 9);
+              const b = randomInt(-9, 9);
+              const correctSum = a + b;
+              let shownSum = correctSum;
+              if (Math.random() > 0.5) {
+                  let delta = randomInt(-3, 3);
+                  while (delta === 0) delta = randomInt(-3, 3);
+                  shownSum = correctSum + delta;
+              }
+
+              statement = `${fmt(a)} + ${fmt(b)} = ${fmt(shownSum)}`;
+              isTrue = shownSum === correctSum;
+              explanation = `${fmt(a)} + ${fmt(b)} = ${fmt(correctSum)} egiten da.`;
           } else {
-              // Opposites
-              const a = randomInt(-10, 10);
-              const correctOpp = -a;
-              const shownOpp = Math.random() > 0.3 ? correctOpp : a; 
-              
-              statement = `Aur(${fmt(a)}) = ${fmt(shownOpp)}`;
-              isTrue = shownOpp === correctOpp;
-              explanation = `${a}-ren aurkakoa ${correctOpp} da.`;
+              // Multiplication statements
+              const a = randomInt(-6, 6);
+              const b = randomInt(-6, 6);
+              const correctProd = a * b;
+              let shownProd = correctProd;
+              if (Math.random() > 0.5) {
+                  let delta = randomInt(-4, 4);
+                  while (delta === 0) delta = randomInt(-4, 4);
+                  shownProd = correctProd + delta;
+              }
+
+              statement = `${fmt(a)} · ${fmt(b)} = ${fmt(shownProd)}`;
+              isTrue = shownProd === correctProd;
+              explanation = `${fmt(a)} · ${fmt(b)} = ${fmt(correctProd)} da.`;
           }
 
           return {
@@ -339,11 +351,11 @@
       const generateMemoryDeck = () => {
           const pairs = [
               { q: "-2 + 5", a: "3", val: 3 },
-              { q: "Aur(-4)", a: "4", val: 4 },
-              { q: "|-6|", a: "6", val: 6 },
-              { q: "-3 - 2", a: "-5", val: -5 },
-              { q: "-1 + 1", a: "0", val: 0 },
-              { q: "2 · (-3)", a: "-6", val: -6 }
+              { q: "4 - 9", a: "-5", val: -5 },
+              { q: "(-3) · 2", a: "-6", val: -6 },
+              { q: "(-6) + (-1)", a: "-7", val: -7 },
+              { q: "5 - (-3)", a: "8", val: 8 },
+              { q: "2 · (-4)", a: "-8", val: -8 }
           ];
           const selectedPairs = pairs.sort(() => Math.random() - 0.5).slice(0, 4);
           const cards = [];
@@ -929,14 +941,20 @@
                    <div className="my-8"><NumberLineHunt /></div>
                    <div className="grid md:grid-cols-2 gap-6 mt-8">
                       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                          <h3 className="text-xl font-bold text-slate-800 mb-3">Balio Absolutua</h3>
-                          <p className="text-slate-600 mb-4">Zenbaki batetik zerora dagoen distantzia da. Beti positiboa da.</p>
-                          <div className="flex justify-around items-center text-lg font-mono bg-slate-50 p-4 rounded-xl"><div>|-5| = <span className="text-blue-600 font-bold">5</span></div><div>|+3| = <span className="text-blue-600 font-bold">3</span></div></div>
+                          <h3 className="text-xl font-bold text-slate-800 mb-3">Seinalea (+/-)</h3>
+                          <p className="text-slate-600 mb-4">Seinaleak adierazten du zenbakiaren noranzkoa: positiboa bada eskuinean dago, negatiboa bada ezkerrean.</p>
+                          <div className="flex justify-around items-center text-lg font-mono bg-slate-50 p-4 rounded-xl">
+                              <div>+7 → <span className="text-green-600 font-bold">Positiboa</span></div>
+                              <div>-4 → <span className="text-red-600 font-bold">Negatiboa</span></div>
+                          </div>
                       </div>
                       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                          <h3 className="text-xl font-bold text-slate-800 mb-3">Aurkakoa Aur()</h3>
-                          <p className="text-slate-600 mb-4">Distantzia berdinera dagoen zenbakia, baina beste aldean.</p>
-                          <div className="flex justify-around items-center text-lg font-mono bg-slate-50 p-4 rounded-xl"><div>Aur(-5) = <span className="text-red-600 font-bold">+5</span></div><div>Aur(+4) = <span className="text-red-600 font-bold">-4</span></div></div>
+                          <h3 className="text-xl font-bold text-slate-800 mb-3">Konparaketak</h3>
+                          <p className="text-slate-600 mb-4">Zenbakia zenbat eta eskuinago egon, orduan eta handiagoa da. Alderantziz ezkerrerantz txikitzen da.</p>
+                          <div className="flex justify-around items-center text-lg font-mono bg-slate-50 p-4 rounded-xl">
+                              <div>-2 <span className="text-slate-500 font-bold">&lt;</span> 3</div>
+                              <div>5 <span className="text-slate-500 font-bold">&gt;</span> -4</div>
+                          </div>
                       </div>
                    </div>
                 </div>

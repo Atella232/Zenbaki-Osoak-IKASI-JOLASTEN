@@ -92,23 +92,23 @@ function App() {
              </div>
 
              <div className="grid md:grid-cols-2 gap-6 mt-8">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                    <h3 className="text-xl font-bold text-slate-800 mb-3">Balio Absolutua</h3>
-                    <p className="text-slate-600 mb-4">Zenbaki batetik zerora dagoen distantzia da. Beti positiboa da.</p>
-                    <div className="flex justify-around items-center text-lg font-mono bg-slate-50 p-4 rounded-xl">
-                        <div>|-5| = <span className="text-blue-600 font-bold">5</span></div>
-                        <div>|+3| = <span className="text-blue-600 font-bold">3</span></div>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                    <h3 className="text-xl font-bold text-slate-800 mb-3">Aurkakoa Aur()</h3>
-                    <p className="text-slate-600 mb-4">Distantzia berdinera dagoen zenbakia, baina beste aldean.</p>
-                    <div className="flex justify-around items-center text-lg font-mono bg-slate-50 p-4 rounded-xl">
-                        <div>Aur(-5) = <span className="text-red-600 font-bold">+5</span></div>
-                        <div>Aur(+4) = <span className="text-red-600 font-bold">-4</span></div>
-                    </div>
-                </div>
-             </div>
+               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                   <h3 className="text-xl font-bold text-slate-800 mb-3">Seinalea (+/-)</h3>
+                   <p className="text-slate-600 mb-4">Seinaleak adierazten du zenbakiaren noranzkoa: positiboa bada eskuinean dago, negatiboa bada ezkerrean.</p>
+                   <div className="flex justify-around items-center text-lg font-mono bg-slate-50 p-4 rounded-xl">
+                       <div>+7 → <span className="text-green-600 font-bold">Positiboa</span></div>
+                       <div>-4 → <span className="text-red-600 font-bold">Negatiboa</span></div>
+                   </div>
+               </div>
+               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                   <h3 className="text-xl font-bold text-slate-800 mb-3">Konparaketak</h3>
+                   <p className="text-slate-600 mb-4">Zenbakia zenbat eta eskuinago egon, orduan eta handiagoa da. Alderantziz ezkerrerantz txikitzen da.</p>
+                   <div className="flex justify-around items-center text-lg font-mono bg-slate-50 p-4 rounded-xl">
+                       <div>-2 <span className="text-slate-500 font-bold">&lt;</span> 3</div>
+                       <div>5 <span className="text-slate-500 font-bold">&gt;</span> -4</div>
+                   </div>
+               </div>
+            </div>
           </div>
         );
 
